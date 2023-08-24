@@ -21,7 +21,7 @@ final class FriendServiceImpl: FriendService {
     
     func fetchFriendInfo() async throws -> [Friend] {
         print("Fetching friends...")
-        _ = try await authService.getBearerTokenV2()
+        _ = try await authService.getBearerToken()
         let friends = Friend.sample()
         print("\(friends.count) friends found!")
         return friends

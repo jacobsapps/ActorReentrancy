@@ -9,37 +9,44 @@ import Foundation
 
 protocol AuthService: AnyActor {
     
-    /// Return a valid, refreshed, bearer token
-    ///
-    /// This method makes no guarantees about re-entrancy and hence
-    /// allows the authentication API to be called concurrently.
-    ///
-    func getBearerTokenV1() async throws -> String
-    
     /// Return a valid, refreshed, bearer token.
     ///
-    /// This version of the method ensures proper re-entrancy and avoids
-    /// simultaneous calls to the authentication API.
-    ///
-    func getBearerTokenV2() async throws -> String
+    func getBearerToken() async throws -> String
 }
 
 actor AuthServiceImpl: AuthService {
     
+    enum Strategy {
+        case naive
+        case ideal
+    }
+    
     static let shared = AuthServiceImpl()
     
+    let strategy: Strategy
     var tokenTask: Task<String, Error>?
     
-    private init() { }
+    private init(strategy: Strategy = .ideal) {
+        self.strategy = strategy
+    }
     
-    func getBearerTokenV1() async throws -> String {
-        try await refreshAuthToken()
+    func getBearerToken() async throws -> String {
+        switch strategy {
+        case .naive:
+            return try await getBearerTokenNaively()
+            
+        case .ideal:
+            return try await getBearerTokenIdeally()
+        }
+    }
+    
+    private func getBearerTokenNaively() async throws -> String {
+        try await fetchValidAuthToken()
     }
         
-    func getBearerTokenV2() async throws -> String {
-        
+    private func getBearerTokenIdeally() async throws -> String {
         if tokenTask == nil {
-            tokenTask = Task { try await refreshAuthToken() }
+            tokenTask = Task { try await fetchValidAuthToken() }
         }
         
         defer { tokenTask = nil }
@@ -47,10 +54,18 @@ actor AuthServiceImpl: AuthService {
         return try await tokenTask!.value
     }
     
-    private func refreshAuthToken() async throws -> String {
+    // Various print statements and waits to represent the
+    // work that would be done by a 'real' service
+    private func fetchValidAuthToken() async throws -> String {
+        print("Checking the keychain for credentials...")
+        print("Credentials found!")
+        print("Checking the expiry on the credentials...")
+        print("Credentials expired!")
         print("Refreshing auth token...")
-        try await Task.sleep(nanoseconds: 1_000_000_000)
+        try await Task.sleep(for: .seconds(1))
         print("Token refreshed!")
+        print("Storing fresh token on the keychain...")
+        print("Token stored!")
         return "0123456789"
     }
 }

@@ -21,7 +21,7 @@ final class UserServiceImpl: UserService {
     
     func fetchUserInfo() async throws -> User {
         print("Fetching user info...")
-        _ = try await authService.getBearerTokenV2()
+        _ = try await authService.getBearerToken()
         let user = User.sample()
         print("User \(user.name) found!")
         return user
